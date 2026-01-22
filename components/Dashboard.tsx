@@ -10,59 +10,189 @@ import { Sparkles, Calculator, AlertTriangle, FileText, User, Layers } from 'luc
 
 // --- MOCK DATA ---
 
+// 동적 평가 대상자 데이터 생성 (12명)
 const ASSIGNEES: Assignee[] = [
   { id: 'user1', name: '김철수 책임', department: '기획팀' },
   { id: 'user2', name: '이영희 선임', department: '개발팀' },
+  { id: 'user3', name: '박민수 주임', department: '디자인팀' },
+  { id: 'user4', name: '최지은 대리', department: '마케팅팀' },
+  { id: 'user5', name: '정현우 선임', department: 'QA팀' },
+  { id: 'user6', name: '한소영 책임', department: '기획팀' },
+  { id: 'user7', name: '윤도현 주임', department: '개발팀' },
+  { id: 'user8', name: '강미라 대리', department: '운영팀' },
+  { id: 'user9', name: '임성호 선임', department: '인프라팀' },
+  { id: 'user10', name: '오수진 책임', department: '디자인팀' },
+  { id: 'user11', name: '신동욱 주임', department: '개발팀' },
+  { id: 'user12', name: '류하늘 대리', department: '기획팀' },
 ];
 
-const TASKS: Task[] = [
-  { id: 't1', assigneeId: 'user1', name: '2025 신규 서비스 기획', type: 'PLANNING' },
-  { id: 't2', assigneeId: 'user1', name: '운영 프로세스 개선', type: 'PLANNING' },
-  { id: 't3', assigneeId: 'user2', name: '백엔드 API 리팩토링', type: 'DEVELOPMENT' },
-  { id: 't4', assigneeId: 'user2', name: '결제 시스템 연동', type: 'DEVELOPMENT' },
-];
+// 동적 평가 과제 데이터 생성 (담당자마다 3건씩)
+const generateTasks = (): Task[] => {
+  const tasks: Task[] = [];
+  const planningTaskNames = [
+    '2025 신규 서비스 기획',
+    '운영 프로세스 개선',
+    '비즈니스 모델 설계',
+    '고객 요구사항 분석',
+    '시장 조사 및 분석',
+    '전략 수립 및 실행 계획',
+    '예산 계획 수립',
+    '리소스 배분 계획',
+    '리스크 관리 계획',
+    '성과 지표 설계',
+    '제품 로드맵 수립',
+    '파트너십 전략 수립',
+    '고객 여정 설계',
+    '브랜드 포지셔닝 전략',
+    '디지털 전환 계획',
+    '고객 세그먼트 분석',
+    '경쟁사 분석',
+    '가격 전략 수립',
+  ];
+  const developmentTaskNames = [
+    '백엔드 API 리팩토링',
+    '결제 시스템 연동',
+    '프론트엔드 UI 개선',
+    '데이터베이스 최적화',
+    '보안 강화 작업',
+    '성능 개선 작업',
+    '모바일 앱 개발',
+    '마이크로서비스 구축',
+    'CI/CD 파이프라인 구축',
+    '모니터링 시스템 구축',
+    '인증 시스템 개발',
+    '실시간 알림 시스템',
+    '데이터 시각화 대시보드',
+    '검색 엔진 최적화',
+    '캐싱 시스템 구축',
+    '메시지 큐 시스템',
+    '로깅 시스템 구축',
+    '테스트 자동화 구축',
+  ];
+
+  let taskCounter = 0;
+  ASSIGNEES.forEach((assignee, assigneeIndex) => {
+    // 각 담당자마다 3건씩 생성 (PLANNING 2건, DEVELOPMENT 1건 또는 그 반대)
+    const taskTypes: TaskType[] = assigneeIndex % 2 === 0 
+      ? ['PLANNING', 'PLANNING', 'DEVELOPMENT']
+      : ['PLANNING', 'DEVELOPMENT', 'DEVELOPMENT'];
+    
+    taskTypes.forEach((taskType) => {
+      const taskNames = taskType === 'PLANNING' ? planningTaskNames : developmentTaskNames;
+      const nameIndex = taskCounter % taskNames.length;
+      
+      tasks.push({
+        id: `t${taskCounter + 1}`,
+        assigneeId: assignee.id,
+        name: taskNames[nameIndex],
+        type: taskType,
+      });
+      taskCounter++;
+    });
+  });
+
+  return tasks;
+};
+
+const TASKS: Task[] = generateTasks();
 
 // --- METRIC CONFIGS PER TASK TYPE ---
+// 이미지 기준으로 통일된 평가 지표 구조 적용
 
-const PLANNING_METRICS: MetricConfig[] = [
+const UNIFIED_METRICS: MetricConfig[] = [
+  // 적정 계획 수립 (Appropriate Plan Establishment)
   {
-    id: 'p1', category: Category.PLANNING, name: '계획의 구체성', description: 'Lv.2 계획의 평균 기간', weight: 20, criteria: '2주 이내: 100, ~4주: 80, ~6주: 60', inputUnit: '일', placeholder: '기간', formatInput: (v) => `${v}일`,
-    calculateScore: (days) => days <= 14 ? 100 : days <= 28 ? 80 : days <= 42 ? 60 : 40
+    id: 'm1', 
+    category: Category.PLANNING, 
+    name: '계획의 구체성', 
+    description: 'Lv.2 계획의 평균 기간', 
+    weight: 20, 
+    criteria: 'Task 당 Max 100일까지 가능하나 가급적 구체적 수립 권장 (100일 초과 5일 당 10점 감점, 150일 초과시 0점)', 
+    inputUnit: '일', 
+    placeholder: '평균 기간', 
+    formatInput: (v) => `${v}일`,
+    calculateScore: (days) => {
+      if (days <= 100) return 100;
+      if (days > 150) return 0;
+      // 100일 초과 5일 당 10점 감점
+      const excessDays = days - 100;
+      const deduction = Math.floor(excessDays / 5) * 10;
+      return Math.max(0, 100 - deduction);
+    }
   },
   {
-    id: 'p2', category: Category.PLANNING, name: '산출 효율성', description: '계획 MH 대비 실적 MH', weight: 20, criteria: '100 - (실적/계획%)', inputUnit: '%', placeholder: '비율', formatInput: (v) => `${v}%`,
-    calculateScore: (r) => 100 - r
+    id: 'm2', 
+    category: Category.PLANNING, 
+    name: '투입 대비 산출 효율성', 
+    description: '계획 MH 대비 실적 MH 비율', 
+    weight: 20, 
+    criteria: '100 - 계획 MH 대비 실적 MH 비율 = 점수', 
+    inputUnit: '%', 
+    placeholder: '비율', 
+    formatInput: (v) => `${v}%`,
+    calculateScore: (ratio) => {
+      const score = 100 - ratio;
+      return Math.max(0, Math.min(100, score));
+    }
   },
   {
-    id: 'p3', category: Category.OPERATION, name: '마감 준수율', description: '기한 내 완료 비율', weight: 30, criteria: '준수율 = 점수', inputUnit: '%', placeholder: '준수율', formatInput: (v) => `${v}%`,
-    calculateScore: (p) => Math.min(100, p)
+    id: 'm3', 
+    category: Category.PLANNING, 
+    name: '일정 변경 시기 준수율', 
+    description: '계획 종료일 이후 일정 변경 건수', 
+    weight: 10, 
+    criteria: '계획 종료일 이후 일정 변경 건수 x 10 = -점수 (계획 종료일 이후 일정 변경 10건 이상 = -100점)', 
+    inputUnit: '건', 
+    placeholder: '변경 건수', 
+    formatInput: (v) => `${v}건`,
+    calculateScore: (count) => {
+      if (count >= 10) return -100;
+      return -(count * 10);
+    }
+  },
+  // 적정 업무 운영 (Appropriate Work Operation)
+  {
+    id: 'm4', 
+    category: Category.OPERATION, 
+    name: '착수 준수율', 
+    description: '담당 과제 중 기한 내 착수한 비율', 
+    weight: 20, 
+    criteria: '준수율 = 점수', 
+    inputUnit: '%', 
+    placeholder: '준수율', 
+    formatInput: (v) => `${v}%`,
+    calculateScore: (rate) => Math.max(0, Math.min(100, rate))
   },
   {
-    id: 'p4', category: Category.OPERATION, name: '지연 일수', description: '총 지연 기간', weight: 30, criteria: '일수 x 5 감점', inputUnit: '일', placeholder: '지연일', formatInput: (v) => `${v}일`,
-    calculateScore: (d) => Math.max(-100, -(d * 5))
+    id: 'm5', 
+    category: Category.OPERATION, 
+    name: '마감 준수율', 
+    description: '담당 과제 중 기한 내 완료한 비율', 
+    weight: 20, 
+    criteria: '준수율 = 점수', 
+    inputUnit: '%', 
+    placeholder: '준수율', 
+    formatInput: (v) => `${v}%`,
+    calculateScore: (rate) => Math.max(0, Math.min(100, rate))
+  },
+  {
+    id: 'm6', 
+    category: Category.OPERATION, 
+    name: '지연일수', 
+    description: '지연된 과제들의 지연 기간', 
+    weight: 10, 
+    criteria: '지연일수 = - 점수 (지연일수 상한선 100일, 100일 이상 = -100점)', 
+    inputUnit: '일', 
+    placeholder: '지연일수', 
+    formatInput: (v) => `${v}일`,
+    calculateScore: (days) => {
+      if (days >= 100) return -100;
+      return -days;
+    }
   }
 ];
 
-const DEV_METRICS: MetricConfig[] = [
-  {
-    id: 'd1', category: Category.PLANNING, name: '요구사항 분석', description: '기능 명세서 작성 완료율', weight: 20, criteria: '완료율 = 점수', inputUnit: '%', placeholder: '완료율', formatInput: (v) => `${v}%`,
-    calculateScore: (p) => Math.min(100, p)
-  },
-  {
-    id: 'd2', category: Category.OPERATION, name: '코드 리뷰 참여', description: 'PR 리뷰 건수', weight: 20, criteria: '10건↑: 100, 5건↑: 80', inputUnit: '건', placeholder: '리뷰 수', formatInput: (v) => `${v}건`,
-    calculateScore: (c) => c >= 10 ? 100 : c >= 5 ? 80 : c >= 3 ? 60 : 40
-  },
-  {
-    id: 'd3', category: Category.QUALITY, name: '버그 발생률', description: '테스트 단계 버그 수', weight: 30, criteria: '0건: 100, 1건당 -10', inputUnit: '건', placeholder: '버그 수', formatInput: (v) => `${v}건`,
-    calculateScore: (c) => Math.max(0, 100 - (c * 10))
-  },
-  {
-    id: 'd4', category: Category.OPERATION, name: '배포 일정 준수', description: 'Target Date 준수 여부', weight: 30, criteria: '준수: 100, 지연: 50', inputUnit: '지연일', placeholder: '지연일', formatInput: (v) => `${v}일`,
-    calculateScore: (d) => d === 0 ? 100 : d <= 2 ? 80 : 50
-  }
-];
-
-const getConfigs = (type: TaskType) => type === 'PLANNING' ? PLANNING_METRICS : DEV_METRICS;
+const getConfigs = (type: TaskType) => UNIFIED_METRICS;
 
 // --- MAIN COMPONENT ---
 
@@ -98,18 +228,13 @@ const Dashboard: React.FC = () => {
             initialMetrics[c.id] = { configId: c.id, inputValue: 0 };
           });
           
-          // Pre-fill some mock data for better UX demonstration
-          if (task.type === 'PLANNING') {
-             initialMetrics['p1'].inputValue = 10; 
-             initialMetrics['p2'].inputValue = 90;
-             initialMetrics['p3'].inputValue = 100;
-             initialMetrics['p4'].inputValue = 0;
-          } else {
-             initialMetrics['d1'].inputValue = 100;
-             initialMetrics['d2'].inputValue = 12;
-             initialMetrics['d3'].inputValue = 2;
-             initialMetrics['d4'].inputValue = 0;
-          }
+          // Pre-fill some mock data for better UX demonstration (이미지 예시 기준)
+          initialMetrics['m1'].inputValue = 100; // 계획의 구체성: ~100일
+          initialMetrics['m2'].inputValue = 70;  // 투입 대비 산출 효율성: 70% (100-70=30점)
+          initialMetrics['m3'].inputValue = 3;   // 일정 변경 시기 준수율: 3건 (-30점)
+          initialMetrics['m4'].inputValue = 90;  // 착수 준수율: 90%
+          initialMetrics['m5'].inputValue = 90;  // 마감 준수율: 90%
+          initialMetrics['m6'].inputValue = 10;  // 지연일수: 10일 (-10점)
 
           newData[task.id] = {
             metrics: initialMetrics,

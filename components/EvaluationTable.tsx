@@ -132,7 +132,7 @@ const EvaluationTable: React.FC<EvaluationTableProps> = ({
       <div className="grid grid-cols-1 md:grid-cols-4 border-t border-gray-200">
         <div className="p-4 bg-gray-50 border-r border-gray-200 flex flex-col justify-center">
           <h3 className="font-bold text-gray-900">정성 평가</h3>
-          <p className="text-xs text-gray-500 mt-1">업무 태도, 기여도, 산출물 품질 등</p>
+          <p className="text-xs text-gray-500 mt-1">계획 구체성, 업무 태도, 기여도, 산출물 품질</p>
         </div>
         
         <div className="p-4 md:col-span-2 border-r border-gray-200 flex flex-col gap-4">
