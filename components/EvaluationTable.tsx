@@ -61,8 +61,20 @@ const EvaluationTable: React.FC<EvaluationTableProps> = ({
           <div className="flex items-center gap-2">
             <input
               type="number"
-              value={item.inputValue}
-              onChange={(e) => onInputChange(item.config.id, parseFloat(e.target.value) || 0)}
+              value={item.inputValue === 0 ? '' : item.inputValue}
+              onChange={(e) => {
+                const val = e.target.value;
+                if (val === '') {
+                  onInputChange(item.config.id, 0);
+                } else {
+                  onInputChange(item.config.id, parseFloat(val) || 0);
+                }
+              }}
+              onFocus={(e) => {
+                if (e.target.value === '0') {
+                  e.target.select();
+                }
+              }}
               className="block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm py-1.5 px-2 border"
               placeholder={item.config.placeholder}
             />
@@ -145,12 +157,22 @@ const EvaluationTable: React.FC<EvaluationTableProps> = ({
                 type="number"
                 min="0"
                 max="100"
-                value={qualitativeScore}
+                value={qualitativeScore === 0 ? '' : qualitativeScore}
                 onChange={(e) => {
-                  let val = parseInt(e.target.value) || 0;
-                  if (val > 100) val = 100;
-                  if (val < 0) val = 0;
-                  onQualitativeChange(val);
+                  const val = e.target.value;
+                  if (val === '') {
+                    onQualitativeChange(0);
+                  } else {
+                    let numVal = parseInt(val) || 0;
+                    if (numVal > 100) numVal = 100;
+                    if (numVal < 0) numVal = 0;
+                    onQualitativeChange(numVal);
+                  }
+                }}
+                onFocus={(e) => {
+                  if (e.target.value === '0') {
+                    e.target.select();
+                  }
                 }}
                 className="block w-32 rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm py-2 px-3 border"
               />

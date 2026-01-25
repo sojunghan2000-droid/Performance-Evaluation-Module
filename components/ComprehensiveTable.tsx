@@ -7,22 +7,6 @@ interface ComprehensiveTableProps {
 }
 
 const ComprehensiveTable: React.FC<ComprehensiveTableProps> = ({ taskSummaries }) => {
-  const getGrade = (score: number) => {
-    if (score >= 90) return 'S';
-    if (score >= 80) return 'A';
-    if (score >= 70) return 'B';
-    return 'C';
-  };
-
-  const getGradeColor = (grade: string) => {
-    switch (grade) {
-      case 'S': return 'bg-green-100 text-green-800';
-      case 'A': return 'bg-blue-100 text-blue-800';
-      case 'B': return 'bg-yellow-100 text-yellow-800';
-      default: return 'bg-red-100 text-red-800';
-    }
-  };
-
   return (
     <div className="overflow-hidden border border-gray-200 rounded-lg shadow-sm bg-white">
       <div className="p-4 border-b border-gray-200 bg-gray-50 flex justify-between items-center">
@@ -46,39 +30,28 @@ const ComprehensiveTable: React.FC<ComprehensiveTableProps> = ({ taskSummaries }
             <th scope="col" className="px-6 py-3 text-center text-xs font-bold text-gray-700 uppercase tracking-wider">
               최종 점수
             </th>
-            <th scope="col" className="px-6 py-3 text-center text-xs font-bold text-gray-700 uppercase tracking-wider">
-              등급
-            </th>
           </tr>
         </thead>
         <tbody className="bg-white divide-y divide-gray-200">
-          {taskSummaries.map((task, idx) => {
-            const grade = getGrade(task.finalScore);
-            return (
-              <tr key={idx} className="hover:bg-gray-50">
-                <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
-                  {task.taskName}
-                </td>
-                <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500 text-center">
-                  {task.quantConverted.toFixed(1)}
-                </td>
-                <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500 text-center">
-                  {task.qualConverted.toFixed(1)}
-                </td>
-                <td className="px-6 py-4 whitespace-nowrap text-sm font-bold text-gray-900 text-center">
-                  {task.finalScore.toFixed(1)}
-                </td>
-                <td className="px-6 py-4 whitespace-nowrap text-center">
-                  <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${getGradeColor(grade)}`}>
-                    {grade}
-                  </span>
-                </td>
-              </tr>
-            );
-          })}
+          {taskSummaries.map((task, idx) => (
+            <tr key={idx} className="hover:bg-gray-50">
+              <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
+                {task.taskName}
+              </td>
+              <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500 text-center">
+                {task.quantConverted.toFixed(1)}
+              </td>
+              <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500 text-center">
+                {task.qualConverted.toFixed(1)}
+              </td>
+              <td className="px-6 py-4 whitespace-nowrap text-sm font-bold text-gray-900 text-center">
+                {task.finalScore.toFixed(1)}
+              </td>
+            </tr>
+          ))}
           {taskSummaries.length === 0 && (
             <tr>
-              <td colSpan={5} className="px-6 py-10 text-center text-gray-500">
+              <td colSpan={4} className="px-6 py-10 text-center text-gray-500">
                 평가 대상 과제가 없습니다.
               </td>
             </tr>
@@ -98,7 +71,6 @@ const ComprehensiveTable: React.FC<ComprehensiveTableProps> = ({ taskSummaries }
              <td className="px-6 py-4 text-center font-black text-gray-900 text-lg">
                {(taskSummaries.reduce((a, b) => a + b.finalScore, 0) / (taskSummaries.length || 1)).toFixed(1)}
              </td>
-             <td></td>
           </tr>
         </tfoot>
       </table>

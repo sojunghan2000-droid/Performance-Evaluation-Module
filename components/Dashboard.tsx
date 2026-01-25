@@ -26,11 +26,14 @@ const ASSIGNEES: Assignee[] = [
   { id: 'user12', name: '류하늘 대리', department: '기획팀' },
 ];
 
-// 동적 평가 과제 데이터 생성 (담당자마다 3건씩)
-const generateTasks = (): Task[] => {
+// 동적 평가 과제 데이터 생성 (담당자마다 3건씩, 기간별로 생성)
+const generateTasks = (period: string): Task[] => {
   const tasks: Task[] = [];
+  const [year, half] = period.split('-H');
+  const periodLabel = `${year}년 ${half === '1' ? '상반기' : '하반기'}`;
+  
   const planningTaskNames = [
-    '2025 신규 서비스 기획',
+    '신규 서비스 기획',
     '운영 프로세스 개선',
     '비즈니스 모델 설계',
     '고객 요구사항 분석',
@@ -82,9 +85,9 @@ const generateTasks = (): Task[] => {
       const nameIndex = taskCounter % taskNames.length;
       
       tasks.push({
-        id: `t${taskCounter + 1}`,
+        id: `${period}-t${taskCounter + 1}`,
         assigneeId: assignee.id,
-        name: taskNames[nameIndex],
+        name: `${periodLabel} ${taskNames[nameIndex]}`,
         type: taskType,
       });
       taskCounter++;
@@ -93,8 +96,6 @@ const generateTasks = (): Task[] => {
 
   return tasks;
 };
-
-const TASKS: Task[] = generateTasks();
 
 // --- METRIC CONFIGS PER TASK TYPE ---
 // 이미지 기준으로 통일된 평가 지표 구조 적용
@@ -123,36 +124,21 @@ const UNIFIED_METRICS: MetricConfig[] = [
   {
     id: 'm2', 
     category: Category.PLANNING, 
-    name: '투입 대비 산출 효율성', 
-    description: '계획 MH 대비 실적 MH 비율', 
-    weight: 20, 
-    criteria: '100 - 계획 MH 대비 실적 MH 비율 = 점수', 
-    inputUnit: '%', 
-    placeholder: '비율', 
-    formatInput: (v) => `${v}%`,
-    calculateScore: (ratio) => {
-      const score = 100 - ratio;
-      return Math.max(0, Math.min(100, score));
-    }
-  },
-  {
-    id: 'm3', 
-    category: Category.PLANNING, 
     name: '일정 변경 시기 준수율', 
     description: '계획 종료일 이후 일정 변경 건수', 
-    weight: 10, 
-    criteria: '계획 종료일 이후 일정 변경 건수 x 10 = -점수 (계획 종료일 이후 일정 변경 10건 이상 = -100점)', 
+    weight: 20, 
+    criteria: '계획 종료일 이후 일정 변경 건수 당 -10점 (계획 종료일 이후 일정 변경 10건 이상 = 0점)', 
     inputUnit: '건', 
     placeholder: '변경 건수', 
     formatInput: (v) => `${v}건`,
     calculateScore: (count) => {
-      if (count >= 10) return -100;
-      return -(count * 10);
+      if (count >= 10) return 0;
+      return Math.max(0, 100 - (count * 10));
     }
   },
   // 적정 업무 운영 (Appropriate Work Operation)
   {
-    id: 'm4', 
+    id: 'm3', 
     category: Category.OPERATION, 
     name: '착수 준수율', 
     description: '담당 과제 중 기한 내 착수한 비율', 
@@ -164,7 +150,7 @@ const UNIFIED_METRICS: MetricConfig[] = [
     calculateScore: (rate) => Math.max(0, Math.min(100, rate))
   },
   {
-    id: 'm5', 
+    id: 'm4', 
     category: Category.OPERATION, 
     name: '마감 준수율', 
     description: '담당 과제 중 기한 내 완료한 비율', 
@@ -176,18 +162,18 @@ const UNIFIED_METRICS: MetricConfig[] = [
     calculateScore: (rate) => Math.max(0, Math.min(100, rate))
   },
   {
-    id: 'm6', 
+    id: 'm5', 
     category: Category.OPERATION, 
     name: '지연일수', 
     description: '지연된 과제들의 지연 기간', 
-    weight: 10, 
-    criteria: '지연일수 = - 점수 (지연일수 상한선 100일, 100일 이상 = -100점)', 
+    weight: 20, 
+    criteria: '지연일수 당 -1점 (지연일수 상한선 100일, 100일 이상 = 0점)', 
     inputUnit: '일', 
     placeholder: '지연일수', 
     formatInput: (v) => `${v}일`,
     calculateScore: (days) => {
-      if (days >= 100) return -100;
-      return -days;
+      if (days >= 100) return 0;
+      return Math.max(0, 100 - days);
     }
   }
 ];
@@ -196,32 +182,41 @@ const getConfigs = (type: TaskType) => UNIFIED_METRICS;
 
 // --- MAIN COMPONENT ---
 
-const Dashboard: React.FC = () => {
+interface DashboardProps {
+  period: string;
+}
+
+const Dashboard: React.FC<DashboardProps> = ({ period }) => {
   const [selectedAssigneeId, setSelectedAssigneeId] = useState<string>(ASSIGNEES[0].id);
   const [selectedTaskId, setSelectedTaskId] = useState<string>('COMPREHENSIVE'); // 'COMPREHENSIVE' or taskId
   
-  // Store all evaluation data in a single state object: { [taskId]: data }
+  // Store all evaluation data in a single state object: { [period-taskId]: data }
   const [allData, setAllData] = useState<Record<string, TaskEvaluationData>>({});
   
   const [geminiAnalysis, setGeminiAnalysis] = useState<string | null>(null);
   const [isAnalyzing, setIsAnalyzing] = useState(false);
 
-  // Filter tasks for current assignee
-  const currentTasks = useMemo(() => 
-    TASKS.filter(t => t.assigneeId === selectedAssigneeId), 
-  [selectedAssigneeId]);
+  // Generate tasks for current period
+  const tasksForPeriod = useMemo(() => generateTasks(period), [period]);
 
-  // Reset task selection when assignee changes
+  // Filter tasks for current assignee and period
+  const currentTasks = useMemo(() => 
+    tasksForPeriod.filter(t => t.assigneeId === selectedAssigneeId), 
+  [tasksForPeriod, selectedAssigneeId]);
+
+  // Reset task selection when assignee or period changes
   useEffect(() => {
     setSelectedTaskId('COMPREHENSIVE');
-  }, [selectedAssigneeId]);
+    setGeminiAnalysis(null);
+  }, [selectedAssigneeId, period]);
 
-  // Initialize data for new tasks if not exists
+  // Initialize data for new tasks if not exists (period별로 분리)
   useEffect(() => {
     setAllData(prev => {
       const newData = { ...prev };
       currentTasks.forEach(task => {
-        if (!newData[task.id]) {
+        const dataKey = `${period}-${task.id}`;
+        if (!newData[dataKey]) {
           const configs = getConfigs(task.type);
           const initialMetrics: Record<string, MetricData> = {};
           configs.forEach(c => {
@@ -229,33 +224,35 @@ const Dashboard: React.FC = () => {
           });
           
           // Pre-fill some mock data for better UX demonstration (이미지 예시 기준)
-          initialMetrics['m1'].inputValue = 100; // 계획의 구체성: ~100일
-          initialMetrics['m2'].inputValue = 70;  // 투입 대비 산출 효율성: 70% (100-70=30점)
-          initialMetrics['m3'].inputValue = 3;   // 일정 변경 시기 준수율: 3건 (-30점)
-          initialMetrics['m4'].inputValue = 90;  // 착수 준수율: 90%
-          initialMetrics['m5'].inputValue = 90;  // 마감 준수율: 90%
-          initialMetrics['m6'].inputValue = 10;  // 지연일수: 10일 (-10점)
+          // 기간별로 약간 다른 초기값 설정 (시뮬레이션)
+          const periodVariation = period.includes('H1') ? 0 : 5;
+          initialMetrics['m1'].inputValue = 100 - periodVariation; // 계획의 구체성: ~100일
+          initialMetrics['m2'].inputValue = 3 + (periodVariation > 0 ? 1 : 0);   // 일정 변경 시기 준수율
+          initialMetrics['m3'].inputValue = 90 - periodVariation;  // 착수 준수율: 90%
+          initialMetrics['m4'].inputValue = 90 - periodVariation; // 마감 준수율: 90%
+          initialMetrics['m5'].inputValue = 10 + periodVariation; // 지연일수: 10일
 
-          newData[task.id] = {
+          newData[dataKey] = {
             metrics: initialMetrics,
-            qualitativeScore: 80, // Default start
+            qualitativeScore: 80 - periodVariation, // Default start
             qualitativeOpinion: ''
           };
         }
       });
       return newData;
     });
-  }, [currentTasks]);
+  }, [currentTasks, period]);
 
-  // Handlers for input changes
+  // Handlers for input changes (period별 key 사용)
   const handleInputChange = (taskId: string, metricId: string, value: number) => {
+    const dataKey = `${period}-${taskId}`;
     setAllData(prev => ({
       ...prev,
-      [taskId]: {
-        ...prev[taskId],
+      [dataKey]: {
+        ...prev[dataKey],
         metrics: {
-          ...prev[taskId].metrics,
-          [metricId]: { ...prev[taskId].metrics[metricId], inputValue: value }
+          ...prev[dataKey].metrics,
+          [metricId]: { ...prev[dataKey].metrics[metricId], inputValue: value }
         }
       }
     }));
@@ -263,23 +260,26 @@ const Dashboard: React.FC = () => {
   };
 
   const handleQualitativeChange = (taskId: string, score: number) => {
+    const dataKey = `${period}-${taskId}`;
     setAllData(prev => ({
       ...prev,
-      [taskId]: { ...prev[taskId], qualitativeScore: score }
+      [dataKey]: { ...prev[dataKey], qualitativeScore: score }
     }));
     setGeminiAnalysis(null);
   };
 
   const handleOpinionChange = (taskId: string, text: string) => {
+    const dataKey = `${period}-${taskId}`;
     setAllData(prev => ({
       ...prev,
-      [taskId]: { ...prev[taskId], qualitativeOpinion: text }
+      [dataKey]: { ...prev[dataKey], qualitativeOpinion: text }
     }));
   };
 
-  // Calculation Logic
+  // Calculation Logic (period별 key 사용)
   const getTaskResult = (task: Task): EvaluationResult => {
-    const data = allData[task.id];
+    const dataKey = `${period}-${task.id}`;
+    const data = allData[dataKey];
     if (!data) {
         // Fallback for initial render before effect runs
         return { quantTotalWeighted: 0, quantConverted: 0, qualConverted: 0, finalScore: 0, grade: 'C', breakdown: [] };
@@ -426,34 +426,15 @@ const Dashboard: React.FC = () => {
         </div>
 
         <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-200 relative overflow-hidden">
-          <div className={`absolute right-0 top-0 h-full w-2 ${
-             evaluationResult.grade === 'S' ? 'bg-green-500' : 
-             evaluationResult.grade === 'A' ? 'bg-blue-500' :
-             evaluationResult.grade === 'B' ? 'bg-yellow-500' : 'bg-red-500'
-          }`}></div>
           <div className="flex items-center justify-between mb-4">
             <h3 className="text-sm font-medium text-gray-500">
-               {evaluationResult.isComprehensive ? '종합 평균 점수' : '최종 평가 등급 점수'}
+               {evaluationResult.isComprehensive ? '종합 평균 점수' : '최종 평가 점수'}
             </h3>
             <Sparkles className="w-5 h-5 text-green-500" />
           </div>
           <div className="flex items-baseline">
             <span className="text-4xl font-black text-gray-900">{evaluationResult.finalScore.toFixed(1)}</span>
             <span className="ml-2 text-sm text-gray-500">/ 100</span>
-          </div>
-          <div className="mt-2">
-            <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
-              evaluationResult.grade === 'S' ? 'bg-green-100 text-green-800' :
-              evaluationResult.grade === 'A' ? 'bg-blue-100 text-blue-800' :
-              evaluationResult.grade === 'B' ? 'bg-yellow-100 text-yellow-800' :
-              'bg-red-100 text-red-800'
-            }`}>
-              {evaluationResult.grade} ({
-                evaluationResult.grade === 'S' ? '탁월' :
-                evaluationResult.grade === 'A' ? '우수' :
-                evaluationResult.grade === 'B' ? '보통' : '미흡'
-              })
-            </span>
           </div>
         </div>
       </div>
@@ -467,18 +448,18 @@ const Dashboard: React.FC = () => {
             <div className="mb-4 flex items-center justify-between">
               <h2 className="text-lg font-bold text-gray-800 flex items-center gap-2">
                 <span className="px-2 py-1 bg-gray-200 rounded text-xs text-gray-700">
-                  {TASKS.find(t => t.id === selectedTaskId)?.type === 'PLANNING' ? '기획' : '개발'}
+                  {currentTasks.find(t => t.id === selectedTaskId)?.type === 'PLANNING' ? '기획' : '개발'}
                 </span>
-                상세 평가 지표: {TASKS.find(t => t.id === selectedTaskId)?.name}
+                상세 평가 지표: {currentTasks.find(t => t.id === selectedTaskId)?.name}
               </h2>
               <span className="text-sm text-gray-500">* 항목 입력 시 점수가 자동 저장됩니다.</span>
             </div>
             <EvaluationTable 
               calculatedMetrics={evaluationResult.breakdown} 
               onInputChange={(id, val) => handleInputChange(selectedTaskId, id, val)}
-              qualitativeScore={allData[selectedTaskId]?.qualitativeScore || 0}
+              qualitativeScore={allData[`${period}-${selectedTaskId}`]?.qualitativeScore || 0}
               onQualitativeChange={(val) => handleQualitativeChange(selectedTaskId, val)}
-              qualitativeOpinion={allData[selectedTaskId]?.qualitativeOpinion || ''}
+              qualitativeOpinion={allData[`${period}-${selectedTaskId}`]?.qualitativeOpinion || ''}
               onOpinionChange={(val) => handleOpinionChange(selectedTaskId, val)}
             />
           </>
