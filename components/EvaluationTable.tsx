@@ -61,18 +61,13 @@ const EvaluationTable: React.FC<EvaluationTableProps> = ({
           <div className="flex items-center gap-2">
             <input
               type="number"
-              value={item.inputValue === 0 ? '' : item.inputValue}
+              value={item.inputValue}
               onChange={(e) => {
                 const val = e.target.value;
                 if (val === '') {
                   onInputChange(item.config.id, 0);
                 } else {
                   onInputChange(item.config.id, parseFloat(val) || 0);
-                }
-              }}
-              onFocus={(e) => {
-                if (e.target.value === '0') {
-                  e.target.select();
                 }
               }}
               className="block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm py-1.5 px-2 border"
@@ -157,7 +152,7 @@ const EvaluationTable: React.FC<EvaluationTableProps> = ({
                 type="number"
                 min="0"
                 max="100"
-                value={qualitativeScore === 0 ? '' : qualitativeScore}
+                value={qualitativeScore}
                 onChange={(e) => {
                   const val = e.target.value;
                   if (val === '') {
@@ -167,11 +162,6 @@ const EvaluationTable: React.FC<EvaluationTableProps> = ({
                     if (numVal > 100) numVal = 100;
                     if (numVal < 0) numVal = 0;
                     onQualitativeChange(numVal);
-                  }
-                }}
-                onFocus={(e) => {
-                  if (e.target.value === '0') {
-                    e.target.select();
                   }
                 }}
                 className="block w-32 rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm py-2 px-3 border"

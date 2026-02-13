@@ -6,7 +6,7 @@ import {
   TaskEvaluationData, Assignee, Task, TaskType 
 } from '../types';
 import { generatePerformanceReview } from '../services/geminiService';
-import { Sparkles, Calculator, AlertTriangle, FileText, User, Layers } from 'lucide-react';
+import { Sparkles, Calculator, AlertTriangle, FileText, User, Layers, Save, CheckCircle } from 'lucide-react';
 
 // --- MOCK DATA ---
 
@@ -195,6 +195,31 @@ const Dashboard: React.FC<DashboardProps> = ({ period }) => {
   
   const [geminiAnalysis, setGeminiAnalysis] = useState<string | null>(null);
   const [isAnalyzing, setIsAnalyzing] = useState(false);
+  const [isSaved, setIsSaved] = useState(false);
+
+  // localStorage에서 저장된 데이터 불러오기
+  useEffect(() => {
+    try {
+      const saved = localStorage.getItem('evaluationData');
+      if (saved) {
+        setAllData(JSON.parse(saved));
+      }
+    } catch (e) {
+      console.error('저장된 데이터 불러오기 실패:', e);
+    }
+  }, []);
+
+  // 저장 핸들러
+  const handleSave = () => {
+    try {
+      localStorage.setItem('evaluationData', JSON.stringify(allData));
+      setIsSaved(true);
+      setTimeout(() => setIsSaved(false), 2000);
+    } catch (e) {
+      console.error('데이터 저장 실패:', e);
+      alert('데이터 저장에 실패했습니다.');
+    }
+  };
 
   // Generate tasks for current period
   const tasksForPeriod = useMemo(() => generateTasks(period), [period]);
@@ -442,7 +467,31 @@ const Dashboard: React.FC<DashboardProps> = ({ period }) => {
       {/* CONDITIONAL TABLE RENDER */}
       <section>
         {evaluationResult.isComprehensive ? (
-          <ComprehensiveTable taskSummaries={evaluationResult.taskSummaries || []} />
+          <>
+            <div className="mb-4 flex items-center justify-end">
+              <button
+                onClick={handleSave}
+                className={`inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white transition-colors ${
+                  isSaved
+                    ? 'bg-green-600 hover:bg-green-700'
+                    : 'bg-blue-600 hover:bg-blue-700'
+                } focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500`}
+              >
+                {isSaved ? (
+                  <>
+                    <CheckCircle className="w-4 h-4 mr-2" />
+                    저장 완료
+                  </>
+                ) : (
+                  <>
+                    <Save className="w-4 h-4 mr-2" />
+                    저장
+                  </>
+                )}
+              </button>
+            </div>
+            <ComprehensiveTable taskSummaries={evaluationResult.taskSummaries || []} />
+          </>
         ) : (
           <>
             <div className="mb-4 flex items-center justify-between">
@@ -452,7 +501,26 @@ const Dashboard: React.FC<DashboardProps> = ({ period }) => {
                 </span>
                 상세 평가 지표: {currentTasks.find(t => t.id === selectedTaskId)?.name}
               </h2>
-              <span className="text-sm text-gray-500">* 항목 입력 시 점수가 자동 저장됩니다.</span>
+              <button
+                onClick={handleSave}
+                className={`inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white transition-colors ${
+                  isSaved
+                    ? 'bg-green-600 hover:bg-green-700'
+                    : 'bg-blue-600 hover:bg-blue-700'
+                } focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500`}
+              >
+                {isSaved ? (
+                  <>
+                    <CheckCircle className="w-4 h-4 mr-2" />
+                    저장 완료
+                  </>
+                ) : (
+                  <>
+                    <Save className="w-4 h-4 mr-2" />
+                    저장
+                  </>
+                )}
+              </button>
             </div>
             <EvaluationTable 
               calculatedMetrics={evaluationResult.breakdown} 
