@@ -6,7 +6,7 @@ import {
   TaskEvaluationData, Assignee, Task, TaskType 
 } from '../types';
 import { generatePerformanceReview } from '../services/geminiService';
-import { Sparkles, Calculator, AlertTriangle, FileText, User, Layers, Save, CheckCircle } from 'lucide-react';
+import { Sparkles, Calculator, AlertTriangle, FileText, User, Layers, Save, CheckCircle, ArrowLeft } from 'lucide-react';
 
 // --- MOCK DATA ---
 
@@ -505,26 +505,35 @@ const Dashboard: React.FC<DashboardProps> = ({ period }) => {
                 </span>
                 상세 평가 지표: {currentTasks.find(t => t.id === selectedTaskId)?.name}
               </h2>
-              <button
-                onClick={handleSave}
-                className={`inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white transition-colors ${
-                  isSaved
-                    ? 'bg-green-600 hover:bg-green-700'
-                    : 'bg-blue-600 hover:bg-blue-700'
-                } focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500`}
-              >
-                {isSaved ? (
-                  <>
-                    <CheckCircle className="w-4 h-4 mr-2" />
-                    저장 완료
-                  </>
-                ) : (
-                  <>
-                    <Save className="w-4 h-4 mr-2" />
-                    저장
-                  </>
-                )}
-              </button>
+              <div className="flex items-center gap-2">
+                <button
+                  onClick={() => setSelectedTaskId('COMPREHENSIVE')}
+                  className="inline-flex items-center px-4 py-2 border border-gray-300 text-sm font-medium rounded-md shadow-sm text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 transition-colors"
+                >
+                  <ArrowLeft className="w-4 h-4 mr-2" />
+                  종합 평가
+                </button>
+                <button
+                  onClick={handleSave}
+                  className={`inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white transition-colors ${
+                    isSaved
+                      ? 'bg-green-600 hover:bg-green-700'
+                      : 'bg-blue-600 hover:bg-blue-700'
+                  } focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500`}
+                >
+                  {isSaved ? (
+                    <>
+                      <CheckCircle className="w-4 h-4 mr-2" />
+                      저장 완료
+                    </>
+                  ) : (
+                    <>
+                      <Save className="w-4 h-4 mr-2" />
+                      저장
+                    </>
+                  )}
+                </button>
+              </div>
             </div>
             <EvaluationTable 
               calculatedMetrics={evaluationResult.breakdown} 
