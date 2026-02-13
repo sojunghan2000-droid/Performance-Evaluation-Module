@@ -4,9 +4,10 @@ import { Sparkles } from 'lucide-react';
 
 interface ComprehensiveTableProps {
   taskSummaries: NonNullable<EvaluationResult['taskSummaries']>;
+  onTaskClick?: (taskId: string) => void;
 }
 
-const ComprehensiveTable: React.FC<ComprehensiveTableProps> = ({ taskSummaries }) => {
+const ComprehensiveTable: React.FC<ComprehensiveTableProps> = ({ taskSummaries, onTaskClick }) => {
   return (
     <div className="overflow-hidden border border-gray-200 rounded-lg shadow-sm bg-white">
       <div className="p-4 border-b border-gray-200 bg-gray-50 flex justify-between items-center">
@@ -35,7 +36,10 @@ const ComprehensiveTable: React.FC<ComprehensiveTableProps> = ({ taskSummaries }
         <tbody className="bg-white divide-y divide-gray-200">
           {taskSummaries.map((task, idx) => (
             <tr key={idx} className="hover:bg-gray-50">
-              <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
+              <td
+                className="px-6 py-4 whitespace-nowrap text-sm font-medium text-blue-700 cursor-pointer hover:text-blue-900 hover:underline"
+                onClick={() => onTaskClick?.(task.taskId)}
+              >
                 {task.taskName}
               </td>
               <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500 text-center">

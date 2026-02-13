@@ -62,6 +62,7 @@ export interface EvaluationResult {
   // For comprehensive view
   isComprehensive?: boolean;
   taskSummaries?: {
+    taskId: string;
     taskName: string;
     finalScore: number;
     quantConverted: number;

@@ -367,6 +367,7 @@ const Dashboard: React.FC<DashboardProps> = ({ period }) => {
       breakdown: [], // Not used in comprehensive view
       isComprehensive: true,
       taskSummaries: taskResults.map(tr => ({
+        taskId: tr.task.id,
         taskName: tr.task.name,
         finalScore: tr.result.finalScore,
         quantConverted: tr.result.quantConverted,
@@ -490,7 +491,10 @@ const Dashboard: React.FC<DashboardProps> = ({ period }) => {
                 )}
               </button>
             </div>
-            <ComprehensiveTable taskSummaries={evaluationResult.taskSummaries || []} />
+            <ComprehensiveTable
+              taskSummaries={evaluationResult.taskSummaries || []}
+              onTaskClick={(taskId) => setSelectedTaskId(taskId)}
+            />
           </>
         ) : (
           <>
