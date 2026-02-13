@@ -1,6 +1,49 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { Category, MetricConfig, MetricData, CalculatedMetric } from '../types';
 import { HelpCircle, AlertCircle } from 'lucide-react';
+
+// 숫자 입력 컴포넌트: 빈칸 허용, blur 시 0 복원
+const NumberInput: React.FC<{
+  value: number;
+  onChange: (value: number) => void;
+  className?: string;
+  placeholder?: string;
+  min?: number;
+  max?: number;
+}> = ({ value, onChange, className, placeholder, min, max }) => {
+  const [displayValue, setDisplayValue] = useState<string>(String(value));
+
+  useEffect(() => {
+    setDisplayValue(String(value));
+  }, [value]);
+
+  return (
+    <input
+      type="number"
+      min={min}
+      max={max}
+      value={displayValue}
+      onChange={(e) => {
+        const val = e.target.value;
+        setDisplayValue(val);
+        if (val !== '') {
+          let numVal = parseFloat(val) || 0;
+          if (max !== undefined && numVal > max) numVal = max;
+          if (min !== undefined && numVal < min) numVal = min;
+          onChange(numVal);
+        }
+      }}
+      onBlur={() => {
+        if (displayValue === '') {
+          setDisplayValue('0');
+          onChange(0);
+        }
+      }}
+      className={className}
+      placeholder={placeholder}
+    />
+  );
+};
 
 interface EvaluationTableProps {
   calculatedMetrics: CalculatedMetric[];
@@ -59,17 +102,9 @@ const EvaluationTable: React.FC<EvaluationTableProps> = ({
         <td className="px-4 py-3 border-r border-gray-200 bg-white">
           <div className="text-xs text-gray-500 mb-1">{item.config.criteria}</div>
           <div className="flex items-center gap-2">
-            <input
-              type="number"
+            <NumberInput
               value={item.inputValue}
-              onChange={(e) => {
-                const val = e.target.value;
-                if (val === '') {
-                  onInputChange(item.config.id, 0);
-                } else {
-                  onInputChange(item.config.id, parseFloat(val) || 0);
-                }
-              }}
+              onChange={(val) => onInputChange(item.config.id, val)}
               className="block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm py-1.5 px-2 border"
               placeholder={item.config.placeholder}
             />
@@ -148,22 +183,11 @@ const EvaluationTable: React.FC<EvaluationTableProps> = ({
               점수 입력 (0 ~ 100점)
             </label>
             <div className="flex items-center gap-3">
-              <input
-                type="number"
-                min="0"
-                max="100"
+              <NumberInput
                 value={qualitativeScore}
-                onChange={(e) => {
-                  const val = e.target.value;
-                  if (val === '') {
-                    onQualitativeChange(0);
-                  } else {
-                    let numVal = parseInt(val) || 0;
-                    if (numVal > 100) numVal = 100;
-                    if (numVal < 0) numVal = 0;
-                    onQualitativeChange(numVal);
-                  }
-                }}
+                onChange={onQualitativeChange}
+                min={0}
+                max={100}
                 className="block w-32 rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm py-2 px-3 border"
               />
               <span className="text-sm text-gray-500">
